@@ -38,8 +38,8 @@ class movie_overlay_theme_Core {
 	$trans 		= module::get_var("movie_overlay", "trans");
 	return "\t<style type=\"text/css\"> 
 	.g-movie-thumb {
-	  position:relative;
-	  margin: auto;
+	  // position:relative;
+	  // margin: auto;
 	}
 	.g-movie-thumb .g-movie-time {
 	  position:absolute;
@@ -58,6 +58,7 @@ class movie_overlay_theme_Core {
 	  padding: 3px 3px 0px 5px;
 	  right:0px;
 	}
+	/*
 	.g-movie-thumb .g-description {
 	  margin-top: -6px!important;
 	  margin-left: -5px!important;
@@ -66,6 +67,7 @@ class movie_overlay_theme_Core {
 	  margin-top: -6px!important;
 	  margin-left: -5px!important;
 	}
+	*/
 	</style>";
 	}
   }
