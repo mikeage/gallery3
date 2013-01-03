@@ -87,7 +87,7 @@ class movie_overlay_theme_Core {
 	  $view->images_url = 	url::file("modules/movie_overlay/images");
 	  $view->icon = 		module::get_var("movie_overlay", "icon");
 	  $view->trans = 		module::get_var("movie_overlay", "trans");
-	  $view->movie_time = 	number_format(movie_overlay_theme_Core::get_movie_time($child), 2);
+	  $view->movie_time = 	gmdate('i:s', movie_overlay_theme_Core::get_movie_time($child));
 	  return $view;
 	}
   }
