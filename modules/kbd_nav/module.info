@@ -1,0 +1,8 @@
+name        = "Kbd Navigation"
+description = "Adds keyboard navigation to the gallery.<br />Version 2.1 | By <a href=http://blog.dragonsoft.us>Serguei Dosyukov</a> | <a href=http://codex.gallery2.org/Gallery3:Modules:kbd_nav>Visit plugin Site</a> | <a href=http://gallery.menalto.com/node/95438>Support</a>"
+version     = 21
+author_name = "Serguei Dosyukov"
+author_url  = "http://blog.dragonsoft.us/gallery-3/"
+info_url    = "http://codex.gallery2.org/Gallery3:Modules:kbd_nav";
+discuss_url = "http://gallery.menalto.com/node/95438";
+
