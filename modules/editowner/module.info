@@ -1,0 +1,7 @@
+name		= "Edit Owner"
+description	= "Manually edit the owner of an item - from the edit menu<br />Version 5 |  By: J.E. Nash"
+version		= 6
+author_name	= "J.E. Nash"
+discuss_url	= "http://gallery.menalto.com/node/106203"
+info_url	= "http://codex.gallery2.org/Gallery3:Modules:editowner"
+author_url	= "http://codex.gallery2.org/User:jnash"
