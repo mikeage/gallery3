@@ -1,0 +1,26 @@
+FancyBox Integration Module Changelog
+
+version 1.5:
+- Added reminder to make sure that module is initialized before first use
+- Optimized so that G3 does combine JS/CSS code
+
+version 1.4:
+- Fixed issue with module in default state not properly creating JS with settings
+- Some layout cleanup
+
+version 1.3:
+- ADMIN: Added support for [Overlay Dynamic] title position
+- ADMIN: Added option to allow cyclic navigation
+- Fixed issue with [Title Position = Hide] still showing title
+
+version 1.2:
+- Fixed syntax error in IE7/IE8 Compatibility Mode
+- FancyBox core updated to 1.3.4
+- Admin form backend optimization
+
+version 1.1:
+- Options, Options, more options
+- Dynamic JS generation improved
+
+version 1.0:
+- Initial release

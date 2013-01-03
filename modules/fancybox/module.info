@@ -1,0 +1,5 @@
+name        = "FancyBox"
+description = "Adds support for FancyBox Media Viewer. <br />Version 1.5 | By <a href=http://blog.dragonsoft.us>Serguei Dosyukov</a> | <a href=http://codex.gallery2.org/Gallery3:Modules:fancybox>Visit plugin Site</a> | <a href=http://gallery.menalto.com/node/98713>Support</a>"
+version     = 15
+support     = "http://gallery.menalto.com/node/98713";
+download    = "http://codex.gallery2.org/Gallery3:Modules:fancybox";
