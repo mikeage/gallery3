@@ -69,5 +69,5 @@ if ($textlocation == 'TRight') { ?>
   </style>
 <? } // end Right ?>
 <div class="newcontainer">
-<span class="g-newitem-text" id="g-thumb-<?= $child->id ?>"><?= t("New!") ?></span>
+<span class="g-newitem-text" id="g-thumb-<?= $child->id ?>"><?= t("&nbsp;&nbsp;New!&nbsp;&nbsp;") ?></span>
 </div>
