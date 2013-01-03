@@ -1,0 +1,3 @@
+[submodule "modules/jpegtran"]
+	path = modules/jpegtran
+	url = git://github.com/letic/jpegtran.git
