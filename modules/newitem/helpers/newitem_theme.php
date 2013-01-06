@@ -71,12 +71,12 @@ class newitem_theme_Core {
     return $view;
 	}
 	if ($child->is_album()) {
-	// first get the number of items in the album that have been updated in $days
-	  $days = module::get_var("newitem", "days");
+	// first get the number of items in the album that have been updated in $updatedays
+	  $updatedays = module::get_var("newitem", "updatedays");
 	  $item = ORM::factory("item", $child->id);
 	  $sub_count = $item
 	    ->viewable()
-		->where("updated", ">", db::expr("UNIX_TIMESTAMP() - 86400 * $days"))
+		->where("updated", ">", db::expr("UNIX_TIMESTAMP() - 86400 * $updatedays"))
 		->descendants_count(array(array("type", "=", "photo")));
 	}
 	// if there is items in the album that have been updated returnt the updateditem view
