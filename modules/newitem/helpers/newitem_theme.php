@@ -19,7 +19,7 @@
  */
 class newitem_theme_Core {
   static function head($theme) {
-    if ($theme->page_subtype() == "album" || $theme->page_subtype() == "tag" || $theme->page_subtype() == "Tag Albums" || $theme->page_subtype() == "dynamic") {
+    if ($theme->page_subtype() == "album" || $theme->page_subtype() == "tag" || $theme->page_subtype() == "Tag Albums" || $theme->page_subtype() == "dynamic" || $theme->page_subtype() == "search") {
 	  $trans 	= module::get_var("newitem", "trans");
 	  $bgcolor  	= module::get_var("newitem", "bgcolor");
 	  $fontcolor = module::get_var("newitem", "fontcolor");
