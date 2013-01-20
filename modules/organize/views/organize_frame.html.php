@@ -278,7 +278,7 @@
           });
         },
         "selectionchange": function(v, selections) {
-          tag_button.setDisabled(!selections.length || !current_album_editable);
+          tag_button.setDisabled(!selections.length || !current_album_editable || !tag_textfield.getValue());
           delete_button.setDisabled(!selections.length || !current_album_editable);
         }
       },
@@ -356,7 +356,14 @@
     });
 
     var tag_textfield = new Ext.form.TextField({
-      flex: 3
+      flex: 4,
+      enableKeyEvents: true,
+      listeners: {
+        "keyup": function(v, e) {
+          var nodes = thumb_data_view.getSelectedNodes();
+          tag_button.setDisabled(!nodes.length || !current_album_editable || !tag_textfield.getValue());
+        }
+      }
     });
     
     var tag_button = new Ext.Button({
@@ -422,8 +429,14 @@
           xtype: "spacer",
           flex: 10
         },
+<? if (module::is_active("tag")) { ?>
         tag_textfield,
         tag_button,
+        {
+          xtype: "spacer",
+          flex: 1
+        },
+<? } ?>
         delete_button,
         {
           xtype: "button",
