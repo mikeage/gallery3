@@ -104,6 +104,30 @@
       });
     }
 
+    var tag_selected_items = function(tag) {
+      var nodes = thumb_data_view.getSelectedNodes();
+      item_ids = [];
+      for (var i = 0; i != nodes.length; i++) {
+        var node = Ext.fly(nodes[i]);
+        item_ids.push(get_id_from_node(node));
+      }
+      start_busy(<?= t("Tagging...")->for_js() ?>);
+      Ext.Ajax.request({
+        url: '<?= url::site("organize/tag") ?>',
+        method: "post",
+        success: function() {
+          stop_busy();
+          reload_album_data();
+        },
+        failure: show_generic_error,
+        params: {
+          item_ids: item_ids.join(","),
+          tag_names: tag,
+          csrf: '<?= access::csrf_token() ?>'
+        }
+      });
+    };
+
     var delete_selected_items = function() {
       var nodes = thumb_data_view.getSelectedNodes();
       item_ids = [];
@@ -254,6 +278,7 @@
           });
         },
         "selectionchange": function(v, selections) {
+          tag_button.setDisabled(!selections.length || !current_album_editable);
           delete_button.setDisabled(!selections.length || !current_album_editable);
         }
       },
@@ -330,6 +355,24 @@
       displayField: "value"
     });
 
+    var tag_textfield = new Ext.form.TextField({
+      flex: 3
+    });
+    
+    var tag_button = new Ext.Button({
+      flex: 2,
+        text: <?= t("Tag")->for_js() ?>,
+        cls: "x-btn-text-icon",
+        id: "tag-button",
+        disabled: true,
+        listeners: {
+          "click": function() {
+            tag_selected_items(tag_textfield.getValue());
+            return true;
+          }
+        }
+    });
+
     var delete_button = new Ext.Button({
       flex: 2,
       text: <?= t("Delete")->for_js() ?>,
@@ -379,6 +422,8 @@
           xtype: "spacer",
           flex: 10
         },
+        tag_textfield,
+        tag_button,
         delete_button,
         {
           xtype: "button",
