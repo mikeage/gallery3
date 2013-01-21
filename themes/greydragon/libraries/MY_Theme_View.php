@@ -626,9 +626,9 @@ class Theme_View extends Theme_View_Core {
 	        $_max = $this->_thumb_size_x;
         endif;
       	$_max = min($thumb_item->thumb_width, $_max);
-        $thumb_content .= $thumb_item->thumb_img(array(), $_max);
+        $thumb_content .= $thumb_item->thumb_img(array("class" => "g-thumbnail"), $_max);
       else:
-        $thumb_content .= $thumb_item->thumb_img();
+        $thumb_content .= $thumb_item->thumb_img(array("class" => "g-thumbnail"));
       endif;
     else:
       $thumb_content .= '<img title="No Image" alt="No Image" src="' . $this->url("images/missing-img.png") . '"/>';
