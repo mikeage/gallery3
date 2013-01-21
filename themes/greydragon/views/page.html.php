@@ -86,6 +86,7 @@
   var MSG_CANCEL = <?= t('Cancel')->for_js() ?>;
 </script>
 
+<?= $theme->script("gallery.ajax.js") ?>
 <?= $theme->script("gallery.dialog.js"); ?>
 
 <? /* These are page specific but they get combined */ ?>
