@@ -124,7 +124,7 @@
    else:
      $item = item::root();
    endif; ?>
-<body <?= $theme->body_attributes() ?><?= ($theme->show_root_page)? ' id="g-rootpage"' : null; ?> <?= $theme->get_bodyclass(); ?>> 
+<body <?= $theme->body_attributes() ?><?= ($theme->show_root_page)? ' id="g-rootpage"' : null; ?> <?= $theme->get_bodyclass(); ?>>
 <? include ('/var/www/common/logosmall.php'); ?>
 <? include ('/var/www/common/navigation.php'); ?>
 <div id="mikeage-content" class="content mikeagecss">
