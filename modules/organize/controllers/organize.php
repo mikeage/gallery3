@@ -184,15 +184,14 @@ class Organize_Controller extends Controller {
 
   function tag() {
     access::verify_csrf();
-
     $input = Input::instance();
 
     foreach (explode(",", $input->post("item_ids")) as $item_id) {
       $item = ORM::factory("item", $item_id);
       if (access::can("edit", $item) && !$item->is_album()) {
         // Assuming the user can view/edit the current item, loop
-        //   through each tag that was submitted and apply it to
-        //   the current item.
+        // through each tag that was submitted and apply it to
+        // the current item.
         foreach (explode(",", $input->post("tag_names")) as $tag_name) {
           $tag_name = trim($tag_name);
           if ($tag_name) {
@@ -201,6 +200,7 @@ class Organize_Controller extends Controller {
         }
       }
     }
+
     json::reply(null);
   }
 

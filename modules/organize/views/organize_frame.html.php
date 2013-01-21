@@ -106,7 +106,7 @@
 
     var tag_selected_items = function(tag) {
       var nodes = thumb_data_view.getSelectedNodes();
-      item_ids = [];
+      var item_ids = [];
       for (var i = 0; i != nodes.length; i++) {
         var node = Ext.fly(nodes[i]);
         item_ids.push(get_id_from_node(node));
@@ -130,7 +130,7 @@
 
     var delete_selected_items = function() {
       var nodes = thumb_data_view.getSelectedNodes();
-      item_ids = [];
+      var item_ids = [];
       for (var i = 0; i != nodes.length; i++) {
         var node = Ext.fly(nodes[i]);
         item_ids.push(get_id_from_node(node));
@@ -426,10 +426,14 @@
             sort_order_combobox
           ]
         }, {
+<? if (!module::is_active("tag")) { ?>
           xtype: "spacer",
           flex: 10
         },
-<? if (module::is_active("tag")) { ?>
+<? } else { ?>
+          xtype: "spacer",
+          flex: 3 
+        },
         tag_textfield,
         tag_button,
         {
