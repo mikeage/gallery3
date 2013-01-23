@@ -1,7 +1,7 @@
 <?php defined("SYSPATH") or die("No direct script access.");
 /**
  * Gallery - a web based photo album viewer and editor
- * Copyright (C) 2000-2012 Bharat Mediratta
+ * Copyright (C) 2000-2013 Bharat Mediratta
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ class graphics_Core {
         // don't do this, the album may be permanently marked as "needs rebuilding"
         //
         // ref: http://sourceforge.net/apps/trac/gallery/ticket/1172
-        //      http://gallery.menalto.com/node/96926
+        //      http://galleryproject.org/node/96926
         if ($item->album_cover_item_id) {
           $item->album_cover_item_id = null;
           $item->save();
