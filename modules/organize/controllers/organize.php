@@ -128,13 +128,7 @@ class Organize_Controller extends Controller {
     access::required("edit", $album);
 
     if ($album->sort_column != "weight") {
-      // Force all the weights into the current order before changing the order to manual
-      $weight = 0;
-      foreach ($album->children() as $child) {
-        $child->weight = ++$weight;
-        $child->save();
-      }
-
+      item::resequence_child_weights($album);
       $album->sort_column = "weight";
       $album->sort_order = "ASC";
       $album->save();
@@ -188,7 +182,7 @@ class Organize_Controller extends Controller {
 
     foreach (explode(",", $input->post("item_ids")) as $item_id) {
       $item = ORM::factory("item", $item_id);
-      if (access::can("edit", $item) && !$item->is_album()) {
+      if (access::can("edit", $item)) {
         // Assuming the user can view/edit the current item, loop
         // through each tag that was submitted and apply it to
         // the current item.

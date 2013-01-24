@@ -425,12 +425,9 @@
             sort_column_combobox,
             sort_order_combobox
           ]
-        }, {
-<? if (!module::is_active("tag")) { ?>
-          xtype: "spacer",
-          flex: 10
-        },
-<? } else { ?>
+        }, 
+<? if (module::is_active("tag")): ?>
+        {
           xtype: "spacer",
           flex: 3 
         },
@@ -440,7 +437,12 @@
           xtype: "spacer",
           flex: 1
         },
-<? } ?>
+<? else: ?>
+        {
+          xtype: "spacer",
+          flex: 10
+        },
+<? endif ?>
         delete_button,
         {
           xtype: "button",
