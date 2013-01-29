@@ -82,7 +82,7 @@ class movie_Core {
     // extract frame at start_time, unless movie is too short
     $start_time_arg = ($duration >= $start_time + 0.1) ?
       "-ss " . movie::seconds_to_hhmmssdd($start_time) : "";
-      
+
     $input_args = isset($movie_options["input_args"]) ? $movie_options["input_args"] : "";
     $output_args = isset($movie_options["output_args"]) ? $movie_options["output_args"] : "";
 
@@ -123,48 +123,86 @@ class movie_Core {
 
   /**
    * Return the width, height, mime_type, extension and duration of the given movie file.
+   * Metadata is first generated using ffmpeg (or set to defaults if it fails),
+   * then can be modified by other modules using movie_get_file_metadata events.
+   *
+   * This function and its use cases are symmetric to those of photo::get_file_metadata.
+   *
+   * @param  string $file_path
+   * @return array  array($width, $height, $mime_type, $extension, $duration)
+   *
+   * Use cases in detail:
+   *   Input is standard movie type (flv/mp4/m4v)
+   *     -> return metadata from ffmpeg
+   *   Input is *not* standard movie type that is supported by ffmpeg (e.g. avi, mts...)
+   *     -> return metadata from ffmpeg
+   *   Input is *not* standard movie type that is *not* supported by ffmpeg but is legal
+   *     -> return zero width, height, and duration; mime type and extension according to legal_file
+   *   Input is *not* standard movie type that is *not* supported by ffmpeg and is *not* legal
+   *     -> return zero width, height, and duration; null mime type and extension
+   *   Input is not readable or does not exist
+   *     -> throw exception
+   * Note: movie_get_file_metadata events can change any of the above cases (except the last one).
    */
   static function get_file_metadata($file_path) {
+    if (!is_readable($file_path)) {
+      throw new Exception("@todo UNREADABLE_FILE");
+    }
+
+    $metadata = new stdClass();
     $ffmpeg = movie::find_ffmpeg();
-    if (empty($ffmpeg)) {
-      throw new Exception("@todo MISSING_FFMPEG");
-    }
-
-    $cmd = escapeshellcmd($ffmpeg) . " -i " . escapeshellarg($file_path) . " 2>&1";
-    $result = `$cmd`;
-    if (preg_match("/Stream.*?Video:.*?, (\d+)x(\d+)/", $result, $matches_res)) {
-      if (preg_match("/Stream.*?Video:.*? \[.*?DAR (\d+):(\d+).*?\]/", $result, $matches_dar) &&
-          $matches_dar[1] >= 1 && $matches_dar[2] >= 1) {
-        // DAR is defined - determine width based on height and DAR
-        // (should always be int, but adding round to be sure)
-        $matches_res[1] = round($matches_res[2] * $matches_dar[1] / $matches_dar[2]);
+    if (!empty($ffmpeg)) {
+      // ffmpeg found - use it to get width, height, and duration.
+      $cmd = escapeshellcmd($ffmpeg) . " -i " . escapeshellarg($file_path) . " 2>&1";
+      $result = `$cmd`;
+      if (preg_match("/Stream.*?Video:.*?, (\d+)x(\d+)/", $result, $matches_res)) {
+        if (preg_match("/Stream.*?Video:.*? \[.*?DAR (\d+):(\d+).*?\]/", $result, $matches_dar) &&
+            $matches_dar[1] >= 1 && $matches_dar[2] >= 1) {
+          // DAR is defined - determine width based on height and DAR
+          // (should always be int, but adding round to be sure)
+          $matches_res[1] = round($matches_res[2] * $matches_dar[1] / $matches_dar[2]);
+        }
+        list ($metadata->width, $metadata->height) = array($matches_res[1], $matches_res[2]);
+      } else {
+        list ($metadata->width, $metadata->height) = array(0, 0);
       }
-      list ($width, $height) = array($matches_res[1], $matches_res[2]);
+
+      if (preg_match("/Duration: (\d+:\d+:\d+\.\d+)/", $result, $matches)) {
+        $metadata->duration = movie::hhmmssdd_to_seconds($matches[1]);
+      } else if (preg_match("/duration.*?:.*?(\d+)/", $result, $matches)) {
+        $metadata->duration = $matches[1];
+      } else {
+        $metadata->duration = 0;
+      }
     } else {
-      list ($width, $height) = array(0, 0);
+      // ffmpeg not found - set width, height, and duration to zero.
+      $metadata->width = 0;
+      $metadata->height = 0;
+      $metadata->duration = 0;
     }
 
-    $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
-    $extension = $extension ? $extension : "flv"; // No extension?  Assume FLV.
-    $mime_type = legal_file::get_movie_types_by_extension($extension);
-    $mime_type = $mime_type ? $mime_type : "video/x-flv"; // No MIME found?  Default to video/x-flv.
-
-    if (preg_match("/Duration: (\d+:\d+:\d+\.\d+)/", $result, $matches)) {
-      $duration = movie::hhmmssdd_to_seconds($matches[1]);
-    } else if (preg_match("/duration.*?:.*?(\d+)/", $result, $matches)) {
-      $duration = $matches[1];
+    $extension = pathinfo($file_path, PATHINFO_EXTENSION);
+    if (!$extension ||
+        (!$metadata->mime_type = legal_file::get_movie_types_by_extension($extension))) {
+        // Extension is empty or illegal.
+        $metadata->extension = null;
+        $metadata->mime_type = null;
     } else {
-      $duration = 0;
+      // Extension is legal (and mime is already set above).
+      $metadata->extension = strtolower($extension);
     }
 
-    return array($width, $height, $mime_type, $extension, $duration);
+    // Run movie_get_file_metadata events which can modify the class, then return results.
+    module::event("movie_get_file_metadata", $file_path, $metadata);
+    return array($metadata->width, $metadata->height, $metadata->mime_type,
+                 $metadata->extension, $metadata->duration);
   }
 
   /**
    * Return the time/duration formatted in hh:mm:ss.dd from a number of seconds.
    * Useful for inputs to ffmpeg.
    *
-   * Note that this is similar to date("H:i:s", mktime(0,0,$seconds,0,0,0,0)), but unlike this 
+   * Note that this is similar to date("H:i:s", mktime(0,0,$seconds,0,0,0,0)), but unlike this
    * approach avoids potential issues with time zone and DST mismatch and/or using deprecated
    * features (the last argument of mkdate above, which disables DST, is deprecated as of PHP 5.3).
    */
@@ -172,7 +210,7 @@ class movie_Core {
     return sprintf("%02d:%02d:%05.2f", floor($seconds / 3600), floor(($seconds % 3600) / 60),
                    floor(100 * $seconds % 6000) / 100);
   }
-  
+
   /**
    * Return the number of seconds from a time/duration formatted in hh:mm:ss.dd.
    * Useful for outputs from ffmpeg.

@@ -128,6 +128,8 @@ class Organize_Controller extends Controller {
     access::required("edit", $album);
 
     if ($album->sort_column != "weight") {
+      // Force all the weights into the current order before changing the order to manual
+      // @todo: consider making this a trigger in the Item_Model.
       item::resequence_child_weights($album);
       $album->sort_column = "weight";
       $album->sort_order = "ASC";
@@ -152,7 +154,7 @@ class Organize_Controller extends Controller {
       // Move all the source items to the right spots.
       for ($i = 0; $i < count($source_ids); $i++) {
         $source = ORM::factory("item", $source_ids[$i]);
-        if ($source->parent_id = $album->id) {
+        if ($source->parent_id == $album->id) {
           $source->weight = $base_weight + $i;
           $source->save();
         }
