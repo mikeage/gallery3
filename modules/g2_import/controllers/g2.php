@@ -39,7 +39,7 @@ class G2_Controller extends Controller {
     // passed, we'll want to show lookup the mapping anyway
     if (($path && 0 === strpos($path, "tag/")) || $view= "tags.VirtualAlbum") {
       if (0 === strpos($path, "tag/")) {
-          $tag_name = substr($path, 4);
+        $tag_name = substr($path, 4);
       }
       if ($view == "tags.VirtualAlbum") {
         $tag_name = $input->get("g2_tagName");
@@ -48,12 +48,15 @@ class G2_Controller extends Controller {
       if (!$id) {
         url::redirect("tag_name/$tag_name");
       }
-      // Otherwise, we want to show the item. Most of this code is below; we'll change $path and 
-      // $view to let it fall through
-      // TODO: the item should be rendered in the context of a virtual tag album and not as part of 
-      // the actual parent album location.
-      $view = "";
-      $path = "";
+
+      $tag = ORM::factory("tag")->where("name", "=", $tag_name)->find();
+      if ($tag->loaded()) {
+        item::set_display_context_callback("Tag_Controller::get_display_context", $tag->id);
+        // We want to show the item as part of the tag virtual album. Most of this code is below; we'll
+        // change $path and $view to let it fall through
+        $view = "";
+        $path = "";
+      }
     }
 
     if (($path && $path != 'index.php' && $path != 'main.php') || $id) {
