@@ -33,7 +33,7 @@ class movie_overlay_theme_Core {
       return '00';
     }
   }
-  static function head($theme, $child) {
+  static function head($theme) {
 	if ($theme->page_type == "collection") {
 	$trans 		= module::get_var("movie_overlay", "trans");
 	return "\t<style type=\"text/css\"> 

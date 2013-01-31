@@ -80,7 +80,7 @@ class newitem_theme_Core {
 		->descendants_count(array(array("type", "=", "photo")));
 	}
 	// if there is items in the album that have been updated returnt the updateditem view
-	if ($sub_count > 0) {
+	if (isset($sub_count) && $sub_count > 0) {
 	  $view = new View("updateitem.html");
 	  $view->child = $child;
       return $view;
