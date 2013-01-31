@@ -18,6 +18,7 @@ class ThumbNav_block_Core {
         $hide_albums = module::get_var("thumbnav", "hide_albums", TRUE);
 
 		$siblings = $theme->siblings();
+		$siblings = $item->parent()->children();
         $itemlist = Array();
         foreach ($siblings as $sibling):
 	        if (isset($sibling)):
