@@ -24,6 +24,8 @@
  * Note: by design, this class does not do any permission checking.
  */
 class movie_Core {
+  private static $allow_uploads;
+
   static function get_edit_form($movie) {
     $form = new Forge("movies/update/$movie->id", "", "post", array("id" => "g-edit-movie-form"));
     $form->hidden("from_id")->value($movie->id);
@@ -110,6 +112,29 @@ class movie_Core {
   }
 
   /**
+   * Return true if movie uploads are allowed, false if not.  This is based on the
+   * "movie_allow_uploads" Gallery variable as well as whether or not ffmpeg is found.
+   */
+  static function allow_uploads() {
+    if (empty(self::$allow_uploads)) {
+      // Refresh ffmpeg settings
+      $ffmpeg = movie::find_ffmpeg();
+      switch (module::get_var("gallery", "movie_allow_uploads", "autodetect")) {
+        case "always":
+          self::$allow_uploads = true;
+          break;
+        case "never":
+          self::$allow_uploads = false;
+          break;
+        default:
+          self::$allow_uploads = !empty($ffmpeg);
+          break;
+      }
+    }
+    return self::$allow_uploads;
+  }
+
+  /**
    * Return the path to the ffmpeg binary if one exists and is executable, or null.
    */
   static function find_ffmpeg() {
@@ -192,8 +217,16 @@ class movie_Core {
       $metadata->extension = strtolower($extension);
     }
 
-    // Run movie_get_file_metadata events which can modify the class, then return results.
+    // Run movie_get_file_metadata events which can modify the class.
     module::event("movie_get_file_metadata", $file_path, $metadata);
+
+    // If the post-events results are invalid, throw an exception.  Note that, unlike photos, having
+    // zero width and height isn't considered invalid (as is the case when FFmpeg isn't installed).
+    if (!$metadata->mime_type || !$metadata->extension ||
+        ($metadata->mime_type != legal_file::get_movie_types_by_extension($metadata->extension))) {
+      throw new Exception("@todo ILLEGAL_OR_UNINDENTIFIABLE_FILE");
+    }
+
     return array($metadata->width, $metadata->height, $metadata->mime_type,
                  $metadata->extension, $metadata->duration);
   }
