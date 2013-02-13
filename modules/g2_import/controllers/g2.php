@@ -33,18 +33,19 @@ class G2_Controller extends Controller {
     $input = Input::instance();
     $path = $input->get("path");
     $id = $input->get("g2_itemId");
-    $view = $input->get("g2_view");
+	$view = $input->get("g2_view");
+	print_r($input);
 
     // Tags did not have mappings created, so we need to catch them first. However, if a g2_itemId was
     // passed, we'll want to show lookup the mapping anyway
-    if (($path && 0 === strpos($path, "tag/")) || $view = "tags.VirtualAlbum") {
+    if (($path && 0 === strpos($path, "tag/")) || $view == "tags.VirtualAlbum") {
       if (0 === strpos($path, "tag/")) {
         $tag_name = substr($path, 4);
       }
       if ($view == "tags.VirtualAlbum") {
         $tag_name = $input->get("g2_tagName");
       }
-
+	  Kohana_Log::add("error", "view is $view, path is $path");
       if (!$id) {
         url::redirect("tag_name/$tag_name", 301);
       }
