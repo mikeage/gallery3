@@ -34,7 +34,6 @@ class G2_Controller extends Controller {
     $path = $input->get("path");
     $id = $input->get("g2_itemId");
 	$view = $input->get("g2_view");
-	print_r($input);
 
     // Tags did not have mappings created, so we need to catch them first. However, if a g2_itemId was
     // passed, we'll want to show lookup the mapping anyway
@@ -45,7 +44,6 @@ class G2_Controller extends Controller {
       if ($view == "tags.VirtualAlbum") {
         $tag_name = $input->get("g2_tagName");
       }
-	  Kohana_Log::add("error", "view is $view, path is $path");
       if (!$id) {
         url::redirect("tag_name/$tag_name", 301);
       }
