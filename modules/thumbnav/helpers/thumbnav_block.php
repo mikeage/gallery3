@@ -17,7 +17,14 @@ class ThumbNav_block_Core {
 
         $hide_albums = module::get_var("thumbnav", "hide_albums", TRUE);
 
-		$siblings = $theme->siblings();
+		$thumb_count = module::get_var("thumbnav", "thumb_count", 9);
+		// This is technically correct, but if something is unviewable or not a photo and $hide_albums is set, it'll mean we didn't retreive enough. So instead, we'll take 5 times the expected amount. The original code retreived all siblings; this optimizes it for large albums by several orders of magnitude without losing functionality in most cases. TODO: ask for only $thumb_count, and then ask for more if needed
+		//$left_count = ceil($thumb_count / 2);
+		//$offset = $theme->position > $left_count ? $theme->position - $left_count : 0;
+		//$siblings = $theme->siblings($offset, $thumb_count); 
+		$left_count = ceil($thumb_count / 2) * 5;
+		$offset = $theme->position > $left_count ? $theme->position - $left_count : 0;
+		$siblings = $theme->siblings($offset, $thumb_count * 5); 
 		if (count($siblings) > 1000) {
 			$siblings = $item->parent()->children();
 		}
@@ -26,7 +33,7 @@ class ThumbNav_block_Core {
 	        if (isset($sibling)):
             if ($sibling->viewable()):
 		          if (($hide_albums and ($sibling->is_photo())) or (!$hide_albums)):
-			          $itemlist[] = $sibling;
+					  $itemlist[] = $sibling;
 			        endif;
 		        endif;
 	        endif;
@@ -35,7 +42,6 @@ class ThumbNav_block_Core {
         $current = -1;
         $total = count($itemlist);
 
-        $thumb_count = module::get_var("thumbnav", "thumb_count", 9);
         $thumb_count = min($thumb_count, $total);
 
         $shift_right = floor($thumb_count / 2);
