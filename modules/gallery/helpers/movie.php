@@ -147,6 +147,34 @@ class movie_Core {
   }
 
   /**
+   * Return version number and build date of ffmpeg if found, empty string(s) if not.  When using
+   * static builds that aren't official releases, the version numbers are strange, hence why the
+   * date can be useful.
+   */
+  static function get_ffmpeg_version() {
+    $ffmpeg = movie::find_ffmpeg();
+    if (empty($ffmpeg)) {
+      return array("", "");
+    }
+
+    // Find version using -h argument since -version wasn't available in early versions.
+    // To keep the preg_match searches quick, we'll trim the (otherwise long) result.
+    $cmd = escapeshellcmd($ffmpeg) . " -h 2>&1";
+    $result = substr(`$cmd`, 0, 1000);
+    if (preg_match("/ffmpeg version (\S+)/i", $result, $matches_version)) {
+      // Version number found - see if we can get the build date or copyright year as well.
+      if (preg_match("/built on (\S+\s\S+\s\S+)/i", $result, $matches_build_date)) {
+        return array(trim($matches_version[1], ","), trim($matches_build_date[1], ","));
+      } else if (preg_match("/copyright \S*\s?2000-(\d{4})/i", $result, $matches_copyright_date)) {
+        return array(trim($matches_version[1], ","), $matches_copyright_date[1]);
+      } else {
+        return array(trim($matches_version[1], ","), "");
+      }
+    }
+    return array("", "");
+  }
+
+  /**
    * Return the width, height, mime_type, extension and duration of the given movie file.
    * Metadata is first generated using ffmpeg (or set to defaults if it fails),
    * then can be modified by other modules using movie_get_file_metadata events.
@@ -163,9 +191,7 @@ class movie_Core {
    *     -> return metadata from ffmpeg
    *   Input is *not* standard movie type that is *not* supported by ffmpeg but is legal
    *     -> return zero width, height, and duration; mime type and extension according to legal_file
-   *   Input is *not* standard movie type that is *not* supported by ffmpeg and is *not* legal
-   *     -> return zero width, height, and duration; null mime type and extension
-   *   Input is not readable or does not exist
+   *   Input is illegal, unidentifiable, unreadable, or does not exist
    *     -> throw exception
    * Note: movie_get_file_metadata events can change any of the above cases (except the last one).
    */
