@@ -141,7 +141,7 @@ class module_Core {
     $messages = array();
 
     $installer_class = "{$module_name}_installer";
-    if (method_exists($installer_class, "can_activate")) {
+    if (class_exists($installer_class) && method_exists($installer_class, "can_activate")) {
       $messages = call_user_func(array($installer_class, "can_activate"));
     }
 
@@ -173,7 +173,7 @@ class module_Core {
     module::_add_to_path($module_name);
 
     $installer_class = "{$module_name}_installer";
-    if (method_exists($installer_class, "install")) {
+    if (class_exists($installer_class) && method_exists($installer_class, "install")) {
       call_user_func_array(array($installer_class, "install"), array());
     }
     module::set_version($module_name, module::available()->$module_name->code_version);
@@ -226,7 +226,7 @@ class module_Core {
     $version_before = module::get_version($module_name);
     $installer_class = "{$module_name}_installer";
     $available = module::available();
-    if (method_exists($installer_class, "upgrade")) {
+    if (class_exists($installer_class) && method_exists($installer_class, "upgrade")) {
       call_user_func_array(array($installer_class, "upgrade"), array($version_before));
     } else {
       if (isset($available->$module_name->code_version)) {
@@ -261,7 +261,7 @@ class module_Core {
     module::_add_to_path($module_name);
 
     $installer_class = "{$module_name}_installer";
-    if (method_exists($installer_class, "activate")) {
+    if (class_exists($installer_class) && method_exists($installer_class, "activate")) {
       call_user_func_array(array($installer_class, "activate"), array());
     }
 
@@ -288,7 +288,7 @@ class module_Core {
    */
   static function deactivate($module_name) {
     $installer_class = "{$module_name}_installer";
-    if (method_exists($installer_class, "deactivate")) {
+    if (class_exists($installer_class) && method_exists($installer_class, "deactivate")) {
       call_user_func_array(array($installer_class, "deactivate"), array());
     }
 
@@ -303,8 +303,25 @@ class module_Core {
 
     block_manager::deactivate_blocks($module_name);
 
-    log::success(
-      "module", t("Deactivated module %module_name", array("module_name" => $module_name)));
+    if (module::info($module_name)) {
+      log::success(
+        "module", t("Deactivated module %module_name", array("module_name" => $module_name)));
+    } else {
+      log::success(
+        "module", t("Deactivated missing module %module_name", array("module_name" => $module_name)));
+    }
+  }
+
+  /**
+   * Deactivate modules that are unavailable or missing, yet still active.
+   * This happens when a user deletes a module without deactivating it.
+   */
+  static function deactivate_missing_modules() {
+    foreach (self::$modules as $module_name => $module) {
+      if (module::is_active($module_name) && !module::info($module_name)) {
+        module::deactivate($module_name);
+      }
+    }
   }
 
   /**
@@ -314,7 +331,7 @@ class module_Core {
    */
   static function uninstall($module_name) {
     $installer_class = "{$module_name}_installer";
-    if (method_exists($installer_class, "uninstall")) {
+    if (class_exists($installer_class) && method_exists($installer_class, "uninstall")) {
       call_user_func(array($installer_class, "uninstall"));
     }
 
@@ -403,7 +420,7 @@ class module_Core {
         continue;
       }
       $class = "{$module->name}_event";
-      if (method_exists($class, $function)) {
+      if (class_exists($class) && method_exists($class, $function)) {
         call_user_func_array(array($class, $function), $args);
       }
     }
@@ -411,7 +428,7 @@ class module_Core {
     // Give the admin theme a chance to respond, if we're in admin mode.
     if (theme::$is_admin) {
       $class = theme::$admin_theme_name . "_event";
-      if (method_exists($class, $function)) {
+      if (class_exists($class) && method_exists($class, $function)) {
         call_user_func_array(array($class, $function), $args);
       }
     }
@@ -419,7 +436,7 @@ class module_Core {
     // Give the site theme a chance to respond as well.  It gets a chance even in admin mode, as
     // long as the theme has an admin subdir.
     $class = theme::$site_theme_name . "_event";
-    if (method_exists($class, $function)) {
+    if (class_exists($class) && method_exists($class, $function)) {
       call_user_func_array(array($class, $function), $args);
     }
   }
@@ -540,5 +557,38 @@ class module_Core {
    */
   static function get_version($module_name) {
     return module::get($module_name)->version;
+  }
+
+  /**
+   * Check if obsolete modules are active and, if so, return a warning message.
+   * If none are found, return null.
+   */
+  static function get_obsolete_modules_message() {
+    // This is the obsolete modules list.  Any active module that's on the list
+    // with version number at or below the one given will be considered obsolete.
+    // It is hard-coded here, and may be updated with future releases of Gallery.
+    $obsolete_modules = array("videos" => 4, "noffmpeg" => 1, "videodimensions" => 1,
+                              "digibug" => 2);
+
+    // Before we check the active modules, deactivate any that are missing.
+    module::deactivate_missing_modules();
+
+    $modules_found = array();
+    foreach ($obsolete_modules as $module => $version) {
+      if (module::is_active($module) && (module::get_version($module) <= $version)) {
+        $modules_found[] = $module;
+      }
+    }
+
+    if ($modules_found) {
+      // Need this to be on one super-long line or else the localization scanner may not work.
+      // (ref: http://sourceforge.net/apps/trac/gallery/ticket/1321)
+      return t("Recent upgrades to Gallery have made the following modules obsolete: %modules. We recommend that you <a href=\"%url_mod\">deactivate</a> the module(s). For more information, please see the <a href=\"%url_doc\">documentation page</a>.",
+               array("modules" => implode(", ", $modules_found),
+                     "url_mod" => url::site("admin/modules"),
+                     "url_doc" => "http://codex.galleryproject.org/Gallery3:User_guide:Obsolete_modules"));
+    }
+
+    return null;
   }
 }
