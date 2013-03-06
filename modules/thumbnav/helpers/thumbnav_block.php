@@ -11,7 +11,7 @@ class ThumbNav_block_Core {
     switch ($block_id) {
       case "thumbnav_block":
         $item = $theme->item;
-        if ((!isset($item)) or (!$item->is_photo())): // Only should be used in photo pages
+        if ((!isset($item)) or (!$item->is_photo()) and !$item->is_movie()): // Only should be used in photo or movie pages
           break;
         endif;
 
@@ -32,7 +32,7 @@ class ThumbNav_block_Core {
         foreach ($siblings as $sibling):
 	        if (isset($sibling)):
             if ($sibling->viewable()):
-		          if (($hide_albums and ($sibling->is_photo())) or (!$hide_albums)):
+		          if (($hide_albums and ($sibling->is_photo()) or $sibling->is_movie()) or (!$hide_albums)):
 					  $itemlist[] = $sibling;
 			        endif;
 		        endif;
