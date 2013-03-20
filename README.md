@@ -1,4 +1,4 @@
-Gallery 3.0.5 (Daydreaming)
+Gallery 3.0.6 (Rive Gauche)
 ===========================
 
 [![Build Status](https://travis-ci.org/gallery/gallery3.png?branch=master)](https://travis-ci.org/gallery/gallery3)
@@ -65,6 +65,7 @@ instructions.
 ```sh
 php installer/index.php [-h host] [-u user] [-p pass] [-d dbname]
 ```
+
  Command line parameters:
 
 ```sh
