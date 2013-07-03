@@ -1,6 +1,6 @@
 (function($) {
    $.widget("ui.gallery_server_add",  {
-     _init: function() {
+     _create: function() {
        var self = this;
        $("#g-server-add-add-button", this.element).click(function(event) {
          event.preventDefault();
@@ -33,7 +33,7 @@
        $("#g-server-add-tree span.g-directory", this.element).dblclick(function(event) {
          self.open_dir(event);
        });
-       $("#g-dialog").bind("dialogclose", function(event, ui) {
+       $("#g-dialog").on("dialogclose", function(event, ui) {
          window.location.reload();
        });
      },

@@ -149,6 +149,25 @@
   text-align: center;
 }
 
+/* Dialogs ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+/**
+ * Newer Themeroller-based themes do this on their own, but older
+ * themes need help ensuring that dialogs and overlays are on top
+ */
+.ui-front {
+  z-index: 1000
+}
+
+/* Autocomplete ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+.ui-autocomplete {
+  text-align: left;
+}
+
+.ui-autocomplete-loading {
+  background: #e8e8e8 url('../images/loading-small.gif') no-repeat center center;
+}
+
 /** *******************************************************************
  * 2) Admin
  **********************************************************************/

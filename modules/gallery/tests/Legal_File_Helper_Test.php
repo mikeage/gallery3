@@ -37,7 +37,7 @@ class Legal_File_Helper_Test extends Gallery_Unit_Test_Case {
     $this->assert_equal(null, legal_file::get_movie_types_by_extension("php.flv")); // invalid w/ .
 
     // No extension returns full array
-    $this->assert_equal(3, count(legal_file::get_movie_types_by_extension()));
+    $this->assert_equal(5, count(legal_file::get_movie_types_by_extension()));
   }
 
   public function get_types_by_extension_test() {
@@ -47,7 +47,7 @@ class Legal_File_Helper_Test extends Gallery_Unit_Test_Case {
     $this->assert_equal(null, legal_file::get_types_by_extension("php.flv"));      // invalid w/ .
 
     // No extension returns full array
-    $this->assert_equal(7, count(legal_file::get_types_by_extension()));
+    $this->assert_equal(9, count(legal_file::get_types_by_extension()));
   }
 
   public function get_photo_extensions_test() {
@@ -69,7 +69,7 @@ class Legal_File_Helper_Test extends Gallery_Unit_Test_Case {
     $this->assert_equal(false, legal_file::get_movie_extensions("php.jpg")); // invalid w/ .
 
     // No extension returns full array
-    $this->assert_equal(3, count(legal_file::get_movie_extensions()));
+    $this->assert_equal(5, count(legal_file::get_movie_extensions()));
   }
 
   public function get_extensions_test() {
@@ -79,12 +79,12 @@ class Legal_File_Helper_Test extends Gallery_Unit_Test_Case {
     $this->assert_equal(false, legal_file::get_extensions("php.jpg")); // invalid w/ .
 
     // No extension returns full array
-    $this->assert_equal(7, count(legal_file::get_extensions()));
+    $this->assert_equal(9, count(legal_file::get_extensions()));
   }
 
   public function get_filters_test() {
-    // All 7 extensions both uppercase and lowercase
-    $this->assert_equal(14, count(legal_file::get_filters()));
+    // All 9 extensions both uppercase and lowercase
+    $this->assert_equal(18, count(legal_file::get_filters()));
   }
 
   public function get_photo_types_test() {
@@ -94,7 +94,7 @@ class Legal_File_Helper_Test extends Gallery_Unit_Test_Case {
 
   public function get_movie_types_test() {
     // Note that this is one *more* than movie extensions since video/flv is added.
-    $this->assert_equal(4, count(legal_file::get_movie_types()));
+    $this->assert_equal(6, count(legal_file::get_movie_types()));
   }
 
   public function change_extension_test() {
@@ -193,5 +193,23 @@ class Legal_File_Helper_Test extends Gallery_Unit_Test_Case {
         // pass
       }
     }
+  }
+
+  public function sanitize_dirname_with_no_rename_test() {
+    $this->assert_equal("foo", legal_file::sanitize_dirname("foo"));
+    $this->assert_equal("foo.bar", legal_file::sanitize_dirname("foo.bar"));
+    $this->assert_equal(".foo.bar...baz", legal_file::sanitize_dirname(".foo.bar...baz"));
+    $this->assert_equal("foo bar  spaces", legal_file::sanitize_dirname("foo bar  spaces"));
+    $this->assert_equal("j'écris@un#nom_bizarre(mais quand_même_ça_passe \$ÇÀ@€",
+      legal_file::sanitize_dirname("j'écris@un#nom_bizarre(mais quand_même_ça_passe \$ÇÀ@€"));
+  }
+
+  public function sanitize_filename_with_corrections_test() {
+    $this->assert_equal("foo_bar", legal_file::sanitize_dirname("/foo/bar/"));
+    $this->assert_equal("foo_bar", legal_file::sanitize_dirname("\\foo\\bar\\"));
+    $this->assert_equal(".foo..bar", legal_file::sanitize_dirname(".foo..bar."));
+    $this->assert_equal("foo_bar", legal_file::sanitize_dirname("_foo__bar_"));
+    $this->assert_equal("album", legal_file::sanitize_dirname("_"));
+    $this->assert_equal("album", legal_file::sanitize_dirname(null));
   }
 }

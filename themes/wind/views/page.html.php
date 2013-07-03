@@ -24,7 +24,7 @@
     <link rel="apple-touch-icon-precomposed"
           href="<?= url::file(module::get_var("gallery", "apple_touch_icon_url")) ?>" />
     <? if ($theme->page_type == "collection"): ?>
-    <? if (($thumb_proportion = $theme->thumb_proportion($theme->item())) != 1): ?>
+      <? if (($thumb_proportion = $theme->thumb_proportion($theme->item(), 100, "width")) != 1): ?>
         <? $new_width = round($thumb_proportion * 213) ?>
         <? $new_height = round($thumb_proportion * 240) ?>
         <style type="text/css">
@@ -50,14 +50,8 @@
     <?= $theme->script("gallery.dialog.js") ?>
     <?= $theme->script("superfish/js/superfish.js") ?>
     <?= $theme->script("jquery.localscroll.js") ?>
-
-    <? /* These are page specific but they get combined */ ?>
-    <? if ($theme->page_subtype == "photo"): ?>
     <?= $theme->script("jquery.scrollTo.js") ?>
     <?= $theme->script("gallery.show_full_size.js") ?>
-    <? elseif ($theme->page_subtype == "movie"): ?>
-    <?= $theme->script("flowplayer.js") ?>
-    <? endif ?>
 
     <?= $theme->head() ?>
 
@@ -75,10 +69,7 @@
           media="screen,print,projection" />
     <![endif]-->
 
-    <!-- LOOKING FOR YOUR CSS? It's all been combined into the link below -->
     <?= $theme->get_combined("css") ?>
-
-    <!-- LOOKING FOR YOUR JAVASCRIPT? It's all been combined into the link below -->
     <?= $theme->get_combined("script") ?>
   </head>
 
@@ -113,7 +104,7 @@
            <li class="<?= $breadcrumb->last ? "g-active" : "" ?>
                       <?= $breadcrumb->first ? "g-first" : "" ?>">
             <? if (!$breadcrumb->last): ?> <a href="<?= $breadcrumb->url ?>"><? endif ?>
-            <?= html::purify(text::limit_chars($breadcrumb->title, module::get_var("gallery", "visible_title_length"))) ?>
+            <?= html::clean(text::limit_chars($breadcrumb->title, module::get_var("gallery", "visible_title_length"))) ?>
             <? if (!$breadcrumb->last): ?></a><? endif ?>
            </li>
           <? endforeach ?>

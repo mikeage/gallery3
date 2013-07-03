@@ -1,15 +1,10 @@
 <?php defined("SYSPATH") or die("No direct script access.") ?>
 <?= $theme->css("server_add.css") ?>
-<?= $theme->css("jquery.autocomplete.css") ?>
-<?= $theme->script("jquery.autocomplete.js") ?>
 <script type="text/javascript">
 $("document").ready(function() {
   $("#g-path").gallery_autocomplete(
     "<?= url::site("__ARGS__") ?>".replace("__ARGS__", "admin/server_add/autocomplete"),
-    {
-      max: 256,
-      loadingClass: "g-loading-small",
-    });
+    {});
 });
 </script>
 

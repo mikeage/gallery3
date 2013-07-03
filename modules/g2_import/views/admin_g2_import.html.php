@@ -1,14 +1,9 @@
 <?php defined("SYSPATH") or die("No direct script access.") ?>
-<?= $theme->css("jquery.autocomplete.css") ?>
-<?= $theme->script("jquery.autocomplete.js") ?>
 <script type="text/javascript">
 $("document").ready(function() {
   $("form input[name=embed_path]").gallery_autocomplete(
     "<?= url::site("__ARGS__") ?>".replace("__ARGS__", "admin/g2_import/autocomplete"),
-    {
-      max: 256,
-      loadingClass: "g-loading-small",
-    });
+    {});
 });
 </script>
 
@@ -25,9 +20,9 @@ $("document").ready(function() {
       .tabs("disable", 1)
       .tabs("disable", 2)
       <? elseif ($g3_resource_count > .9 * $g2_resource_count):  ?>
-      .tabs("select", 2)
+      .tabs({active: 2})
       <? else: ?>
-      .tabs("select", 1)
+      .tabs({active: 1})
       <? endif ?>
       ;
 

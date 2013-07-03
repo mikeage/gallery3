@@ -1,5 +1,10 @@
+<<<<<<< HEAD:README.md
 Gallery 3.0.7 (Rive Droite)
 ===========================
+=======
+Gallery 3.1+ (development version)
+==================================
+>>>>>>> upstream/master:README.md
 
 [![Build Status](https://travis-ci.org/gallery/gallery3.png?branch=master)](https://travis-ci.org/gallery/gallery3)
 

@@ -175,6 +175,12 @@ class File_Structure_Test extends Gallery_Unit_Test_Case {
         // Front controllers
         break;
 
+      case DOCROOT . "lib/uploadify/uploadify.swf.php":
+      case DOCROOT . "lib/uploadify/uploadify.allglyphs.swf.php":
+      case DOCROOT . "lib/mediaelementjs/flashmediaelement.swf.php":
+        // SWF wrappers - directly accessible
+        break;
+
       case DOCROOT . "local.php":
         // Special case optional file, not part of the codebase
         break;

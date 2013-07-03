@@ -365,13 +365,19 @@ class Item_Model_Core extends ORM_MPTT {
           $this->weight = item::get_max_weight();
         }
 
-        // Process the data file info.
-        if (isset($this->data_file)) {
-          $this->_process_data_file_info();
-        } else if (!$this->is_album()) {
-          // Unless it's an album, new items must have a data file.
-          $this->data_file_error = true;
+        if ($this->is_album()) {
+          // Sanitize the album name.
+          $this->name = legal_file::sanitize_dirname($this->name);
+        } else {
+          // Process the data file info.  This also sanitizes the item name.
+          if (isset($this->data_file)) {
+            $this->_process_data_file_info();
+          } else {
+            // New photos and movies must have a data file.
+            $this->data_file_error = true;
+          }
         }
+
 
         // Make an url friendly slug from the name, if necessary
         if (empty($this->slug)) {
@@ -435,6 +441,11 @@ class Item_Model_Core extends ORM_MPTT {
           // make sure the new name still agrees with the file type.
           $this->name = legal_file::sanitize_filename($this->name,
             pathinfo($original->name, PATHINFO_EXTENSION), $this->type);
+        }
+
+        // If an album's name changed, sanitize it.
+        if ($this->is_album() && array_key_exists("name", $this->changed)) {
+          $this->name = legal_file::sanitize_dirname($this->name);
         }
 
         // If an album's cover has changed (or been removed), delete any existing album cover,
@@ -737,41 +748,42 @@ class Item_Model_Core extends ORM_MPTT {
   }
 
   /**
-   * Return a view for movies.  By default this is a Flowplayer v3 <script> tag, but
-   * movie_img events can override this and provide their own player/view.  If no player/view
-   * is found and the movie is unsupported by Flowplayer v3, this returns a simple download link.
+   * Return a view for movies.  By default, this uses MediaElementPlayer on an HTML5-compliant
+   * <video> object, but movie_img events can override this and provide their own player/view.
+   * If none are found and the player can't play the movie, this returns a simple download link.
    * @param array $extra_attrs
    * @return string
    */
   public function movie_img($extra_attrs) {
-    $max_size = module::get_var("gallery", "resize_size", 640);
+    $player_width = module::get_var("gallery", "resize_size", 640);
     $width = $this->width;
     $height = $this->height;
     if ($width == 0 || $height == 0) {
-      // Not set correctly, likely because ffmpeg isn't available.  Making the window 0x0 causes the
-      // video to be effectively unviewable.  So, let's guess: set width to max_size and guess a
-      // height (using 4:3 aspect ratio).  Once the video metadata is loaded, js in
-      // movieplayer.html.php will correct these values.
-      $width = $max_size;
+      // Not set correctly, likely because FFmpeg isn't available.  Making the window 0x0 causes the
+      // player to be unviewable during loading.  So, let's guess: set width to player_width and
+      // guess a height (using 4:3 aspect ratio).  Once the video metadata is loaded, the player
+      // will correct these values.
+      $width = $player_width;
       $height = ceil($width * 3/4);
     }
-    $attrs = array_merge(array("id" => "g-item-id-{$this->id}"), $extra_attrs,
-                         array("class" => "g-movie"));
+    $div_attrs = array_merge(array("id" => "g-item-id-{$this->id}"), $extra_attrs,
+                             array("class" => "g-movie", "style" => "width: {$player_width}px;"));
 
     // Run movie_img events, which can either:
-    //  - generate a view, which is used in place of the standard Flowplayer v3 player
+    //  - generate a view, which is used in place of the standard MediaElementPlayer
     //    (use view variable)
-    //  - alter the arguments sent to the standard player
-    //    (use fp_params and fp_config variables)
+    //  - change the file sent to the player
+    //    (use width, height, url, and filename variables)
+    //  - alter the arguments sent to the player
+    //    (use video_attrs and player_options variables)
     $movie_img = new stdClass();
-    $movie_img->max_size = $max_size;
     $movie_img->width = $width;
     $movie_img->height = $height;
-    $movie_img->attrs = $attrs;
     $movie_img->url = $this->file_url(true);
     $movie_img->filename = $this->name;
-    $movie_img->fp_params = array(); // additional Flowplayer params values (will be json encoded)
-    $movie_img->fp_config = array(); // additional Flowplayer config values (will be json encoded)
+    $movie_img->div_attrs = $div_attrs;   // attrs for the outer .g-movie <div>
+    $movie_img->video_attrs = array();    // add'l <video> attrs
+    $movie_img->player_options = array(); // add'l MediaElementPlayer options (will be json encoded)
     $movie_img->view = array();
     module::event("movie_img", $movie_img, $this);
 
@@ -779,26 +791,26 @@ class Item_Model_Core extends ORM_MPTT {
       // View generated - use it
       $view = implode("\n", $movie_img->view);
     } else {
-      // View NOT generated - see if filetype supported by Flowplayer v3
-      // Note that the extension list below is hard-coded and doesn't use the legal_file helper
-      // since anything else will not work in Flowplayer v3.
-      if (in_array(strtolower(pathinfo($movie_img->filename, PATHINFO_EXTENSION)),
-                   array("flv", "mp4", "m4v", "mov", "f4v"))) {
-        // Filetype supported by Flowplayer v3 - use it (default)
+      // View not generated - see if the filetype is supported by MediaElementPlayer.
+      // Note that the extension list below doesn't use the legal_file helper but rather
+      // is hard-coded based on player specifications.
+      $extension = strtolower(pathinfo($movie_img->filename, PATHINFO_EXTENSION));
+      if (in_array($extension, array("webm", "ogv", "mp4", "flv", "m4v", "mov", "f4v", "wmv"))) {
+        // Filetype supported by MediaElementPlayer - use it (default)
         $view = new View("movieplayer.html");
-        $view->max_size = $movie_img->max_size;
         $view->width = $movie_img->width;
         $view->height = $movie_img->height;
-        $view->attrs = $movie_img->attrs;
-        $view->url = $movie_img->url;
-        $view->fp_params = $movie_img->fp_params;
-        $view->fp_config = $movie_img->fp_config;
+        $view->div_attrs = $movie_img->div_attrs;
+        $view->video_attrs = array_merge(array("controls" => "controls", "autoplay" => "autoplay",
+                                         "style" => "max-width: 100%"), $movie_img->video_attrs);
+        $view->source_attrs = array("type" => legal_file::get_movie_types_by_extension($extension),
+                                    "src" => $movie_img->url);
+        $view->player_options = $movie_img->player_options;
       } else {
-        // Filetype NOT supported by Flowplayer v3 - display download link
-        $attrs = array_merge($attrs, array("style" => "width: {$max_size}px;",
-                                           "download" => $this->name, // forces download (HTML5 only)
-                                           "class" => "g-movie g-movie-download-link"));
-        $view = html::anchor($this->file_url(true), t("Click here to download item."), $attrs);
+        // Filetype not supported by MediaElementPlayer - display download link
+        $div_attrs["class"] .= " g-movie-download-link"; // add class
+        $div_attrs["download"] = $movie_img->filename;   // force download (HTML5 only)
+        $view = html::anchor($movie_img->url, t("Click here to download item."), $div_attrs);
       }
     }
     return $view;
@@ -888,12 +900,17 @@ class Item_Model_Core extends ORM_MPTT {
   }
 
   /**
-   * Validate that the desired slug does not conflict.
+   * Validate the item slug.  It can return the following error messages:
+   * - not_url_safe: has illegal characters
+   * - conflict: has conflicting slug
+   * - reserved (items in root only): has same slug as a controller
    */
   public function valid_slug(Validation $v, $field) {
     if (preg_match("/[^A-Za-z0-9-_]/", $this->slug)) {
       $v->add_error("slug", "not_url_safe");
-    } else if (db::build()
+    }
+
+    if (db::build()
         ->from("items")
         ->where("parent_id", "=", $this->parent_id)
         ->where("id", "<>", $this->id)
@@ -901,15 +918,29 @@ class Item_Model_Core extends ORM_MPTT {
         ->count_records()) {
       $v->add_error("slug", "conflict");
     }
+
+    if ($this->parent_id == 1 && Kohana::auto_load("{$this->slug}_Controller")) {
+      $v->add_error("slug", "reserved");
+      return;
+    }
   }
 
   /**
-   * Validate the item name.  It can't conflict with other names, can't contain slashes or
-   * trailing periods.
+   * Validate the item name.  It can return the following error messages:
+   * - no_slashes: contains slashes
+   * - no_backslashes: contains backslashes
+   * - no_trailing_period: has a trailing period
+   * - illegal_data_file_extension (non-albums only): has double, no, or illegal extension
+   * - conflict: has conflicting name
    */
   public function valid_name(Validation $v, $field) {
     if (strpos($this->name, "/") !== false) {
       $v->add_error("name", "no_slashes");
+      return;
+    }
+
+    if (strpos($this->name, "\\") !== false) {
+      $v->add_error("name", "no_backslashes");
       return;
     }
 
@@ -918,13 +949,13 @@ class Item_Model_Core extends ORM_MPTT {
       return;
     }
 
-    // Do not accept files with double extensions, they can cause problems on some
-    // versions of Apache.
-    if (!$this->is_album() && substr_count($this->name, ".") > 1) {
-      $v->add_error("name", "illegal_data_file_extension");
-    }
-
     if ($this->is_movie() || $this->is_photo()) {
+      if (substr_count($this->name, ".") > 1) {
+        // Do not accept files with double extensions, as they can
+        // cause problems on some versions of Apache.
+        $v->add_error("name", "illegal_data_file_extension");
+      }
+
       $ext = pathinfo($this->name, PATHINFO_EXTENSION);
 
       if (!$this->loaded() && !$ext) {
@@ -965,11 +996,6 @@ class Item_Model_Core extends ORM_MPTT {
         $v->add_error("name", "conflict");
         return;
       }
-    }
-
-    if ($this->parent_id == 1 && Kohana::auto_load("{$this->slug}_Controller")) {
-      $v->add_error("slug", "reserved");
-      return;
     }
   }
 

@@ -47,52 +47,25 @@ class Uploader_Controller extends Controller {
 
     $form = $this->_get_add_form($album);
 
-    // Uploadify adds its own field to the form, so validate that separately.
-    $file_validation = new Validation($_FILES);
-    $file_validation->add_rules(
-      "Filedata", "upload::valid",  "upload::required",
-      "upload::type[" . implode(",", legal_file::get_extensions()) . "]");
-
-    if ($form->validate() && $file_validation->validate()) {
-      $temp_filename = upload::save("Filedata");
-      system::delete_later($temp_filename);
+    if ($form->validate()) {
+      // Uploadify puts the result in $_FILES["Filedata"] - process it.
       try {
-        $item = ORM::factory("item");
-        $item->name = substr(basename($temp_filename), 10);  // Skip unique identifier Kohana adds
-        $item->title = item::convert_filename_to_title($item->name);
-        $item->parent_id = $album->id;
-        $item->set_data_file($temp_filename);
-
-        $path_info = @pathinfo($temp_filename);
-        if (array_key_exists("extension", $path_info) &&
-            legal_file::get_movie_extensions($path_info["extension"])) {
-          $item->type = "movie";
-          $item->save();
-          log::success("content", t("Added a movie"),
-                       html::anchor("movies/$item->id", t("view movie")));
-        } else {
-          $item->type = "photo";
-          $item->save();
-          log::success("content", t("Added a photo"),
-                       html::anchor("photos/$item->id", t("view photo")));
-        }
-
-        module::event("add_photos_form_completed", $item, $form);
+        list ($tmp_name, $name) = $this->_process_upload("Filedata");
       } catch (Exception $e) {
-        // The Flash uploader has no good way of reporting complex errors, so just keep it simple.
-        Kohana_Log::add("error", $e->getMessage() . "\n" . $e->getTraceAsString());
-
-        // Ugh.  I hate to use instanceof, But this beats catching the exception separately since
-        // we mostly want to treat it the same way as all other exceptions
-        if ($e instanceof ORM_Validation_Exception) {
-          Kohana_Log::add("error", "Validation errors: " . print_r($e->validation->errors(), 1));
-        }
-
-        header("HTTP/1.1 500 Internal Server Error");
+        header("HTTP/1.1 400 Bad Request");
         print "ERROR: " . $e->getMessage();
         return;
       }
-      print "FILEID: $item->id";
+
+      // We have a valid upload file (of unknown type) - build an item from it.
+      try {
+        $item = $this->_add_item($id, $tmp_name, $name);
+        module::event("add_photos_form_completed", $item, $form);
+        print "FILEID: $item->id";
+      } catch (Exception $e) {
+        header("HTTP/1.1 500 Internal Server Error");
+        print "ERROR: " . $e->getMessage();
+      }
     } else {
       header("HTTP/1.1 400 Bad Request");
       print "ERROR: " . t("Invalid upload");
@@ -107,27 +80,122 @@ class Uploader_Controller extends Controller {
                (int)$success_count,
                array("error" => (int)$error_count));
     } else {
-      print t2("Uploaded %count photo", "Uploaded %count photos", $success_count);}
+      print t2("Uploaded %count photo", "Uploaded %count photos", $success_count);
+    }
   }
 
   public function finish() {
     access::verify_csrf();
-
     batch::stop();
     json::reply(array("result" => "success"));
   }
 
-  private function _get_add_form($album)  {
+  private function _get_add_form($album) {
     $form = new Forge("uploader/finish", "", "post", array("id" => "g-add-photos-form"));
     $group = $form->group("add_photos")
       ->label(t("Add photos to %album_title", array("album_title" => html::purify($album->title))));
     $group->uploadify("uploadify")->album($album);
 
-    $group = $form->group("actions");
-    $group->uploadify_buttons("");
+    $group_actions = $form->group("actions");
+    $group_actions->uploadify_buttons("");
 
+    $inputs_before_event = array_keys($form->add_photos->inputs);
     module::event("add_photos_form", $album, $form);
+    $inputs_after_event = array_keys($form->add_photos->inputs);
+
+    // For each new input in add_photos, attach JS to make uploadify update its value.
+    foreach (array_diff($inputs_after_event, $inputs_before_event) as $input) {
+      if (!$input) {
+        // Likely a script input - don't do anything with it.
+        continue;
+      }
+      $group->uploadify->script_data($input, $group->{$input}->value);
+      $group->script("")
+        ->text("$('input[name=\"$input\"]').change(function (event) {
+                  $('#g-uploadify').uploadifySettings('scriptData', {'$input': $(this).val()});
+                });");
+    }
 
     return $form;
+  }
+
+  /**
+   * Process the uploaded file.  This handles the interface with Kohana's upload and validation
+   * code, and marks the new temp file for deletion on shutdown.  It returns the temp file path
+   * (tmp_name) and filename (name), analogous to their respective $_FILES elements.
+   * If the upload is invalid, it will throw an exception.  Note that no type-checking (e.g. jpg,
+   * mp4,...) is performed here.
+   * @TODO: consider moving this to a common controller which is extended by various uploaders.
+   *
+   * @param  string name of $_FILES input
+   * @return array  array($tmp_name, $name)
+   */
+  private function _process_upload($file) {
+    // Validate file data.  At this point, any file extension is still valid.
+    $file_validation = new Validation($_FILES);
+    $file_validation->add_rules($file, "upload::valid",  "upload::required");
+    if (!$file_validation->validate()) {
+      throw new Exception(t("Invalid upload"));
+    }
+
+    // Save temp file and mark for deletion when done.
+    $tmp_name = upload::save($file);
+    system::delete_later($tmp_name);
+
+    // Get uploaded filename.  This is different than tmp_name since it hasn't been uniquified.
+    $name = $_FILES[$file]["name"];
+
+    return array($tmp_name, $name);
+  }
+
+  /**
+   * Add photo or movie from upload.  Once we have a valid file, this generates an item model
+   * from it.  It returns the item model on success, and throws an exception and adds log entries
+   * on failure.
+   * @TODO: consider moving this to a common controller which is extended by various uploaders.
+   *
+   * @param  int    parent album id
+   * @param  string temp file path (analogous to $_FILES[...]["tmp_name"])
+   * @param  string filename       (analogous to $_FILES[...]["name"])
+   * @return object new item model
+   */
+  private function _add_item($album_id, $tmp_name, $name) {
+    $extension = pathinfo($name, PATHINFO_EXTENSION);
+
+    try {
+      $item = ORM::factory("item");
+      $item->name = $name;
+      $item->title = item::convert_filename_to_title($name);
+      $item->parent_id = $album_id;
+      $item->set_data_file($tmp_name);
+
+      if (!$extension) {
+        throw new Exception(t("Uploaded file has no extension"));
+      } else if (legal_file::get_photo_extensions($extension)) {
+        $item->type = "photo";
+        $item->save();
+        log::success("content", t("Added a photo"),
+                     html::anchor("photos/$item->id", t("view photo")));
+      } else if (movie::allow_uploads() && legal_file::get_movie_extensions($extension)) {
+        $item->type = "movie";
+        $item->save();
+        log::success("content", t("Added a movie"),
+                     html::anchor("movies/$item->id", t("view movie")));
+      } else {
+        throw new Exception(t("Uploaded file has illegal extension"));
+      }
+    } catch (Exception $e) {
+      // Log errors then re-throw exception.
+      Kohana_Log::add("error", $e->getMessage() . "\n" . $e->getTraceAsString());
+
+      // If we have a validation error, add an additional log entry.
+      if ($e instanceof ORM_Validation_Exception) {
+        Kohana_Log::add("error", "Validation errors: " . print_r($e->validation->errors(), 1));
+      }
+
+      throw $e;
+    }
+
+    return $item;
   }
 }

@@ -124,11 +124,124 @@ class Item_Model_Test extends Gallery_Unit_Test_Case {
     $this->assert_equal($fullsize_file, file_get_contents($photo->file_path()));
   }
 
-  public function item_rename_wont_accept_slash_test() {
-    $item = test::random_photo();
+  public function photo_rename_wont_accept_slash_test() {
+    $item = test::random_photo_unsaved();
+    $item->name = "/no_slashes/allowed/";
+    // Should fail on validate.
+    try {
+      $item->validate();
+      $this->assert_true(false, "Shouldn't get here");
+    } catch (ORM_Validation_Exception $e) {
+      $errors = $e->validation->errors();
+      $this->assert_same("no_slashes", $errors["name"]);
+    }
+    // Should be corrected on save.
+    $item->save();
+    $this->assert_equal("no_slashes_allowed.jpg", $item->name);
+    // Should be corrected on update.
     $item->name = "/no_slashes/allowed/";
     $item->save();
     $this->assert_equal("no_slashes_allowed.jpg", $item->name);
+  }
+
+  public function photo_rename_wont_accept_backslash_test() {
+    $item = test::random_photo_unsaved();
+    $item->name = "\\no_backslashes\\allowed\\";
+    // Should fail on validate.
+    try {
+      $item->validate();
+      $this->assert_true(false, "Shouldn't get here");
+    } catch (ORM_Validation_Exception $e) {
+      $errors = $e->validation->errors();
+      $this->assert_same("no_backslashes", $errors["name"]);
+    }
+    // Should be corrected on save.
+    $item->save();
+    $this->assert_equal("no_backslashes_allowed.jpg", $item->name);
+    // Should be corrected on update.
+    $item->name = "\\no_backslashes\\allowed\\";
+    $item->save();
+    $this->assert_equal("no_backslashes_allowed.jpg", $item->name);
+  }
+
+  public function photo_rename_wont_accept_trailing_period_test() {
+    $item = test::random_photo_unsaved();
+    $item->name = "no_trailing_period_allowed.";
+    // Should fail on validate.
+    try {
+      $item->validate();
+      $this->assert_true(false, "Shouldn't get here");
+    } catch (ORM_Validation_Exception $e) {
+      $errors = $e->validation->errors();
+      $this->assert_same("no_trailing_period", $errors["name"]);
+    }
+    // Should be corrected on save.
+    $item->save();
+    $this->assert_equal("no_trailing_period_allowed.jpg", $item->name);
+    // Should be corrected on update.
+    $item->name = "no_trailing_period_allowed.";
+    $item->save();
+    $this->assert_equal("no_trailing_period_allowed.jpg", $item->name);
+  }
+
+  public function album_rename_wont_accept_slash_test() {
+    $item = test::random_album_unsaved();
+    $item->name = "/no_album_slashes/allowed/";
+    // Should fail on validate.
+    try {
+      $item->validate();
+      $this->assert_true(false, "Shouldn't get here");
+    } catch (ORM_Validation_Exception $e) {
+      $errors = $e->validation->errors();
+      $this->assert_same("no_slashes", $errors["name"]);
+    }
+    // Should be corrected on save.
+    $item->save();
+    $this->assert_equal("no_album_slashes_allowed", $item->name);
+    // Should be corrected on update.
+    $item->name = "/no_album_slashes/allowed/";
+    $item->save();
+    $this->assert_equal("no_album_slashes_allowed", $item->name);
+  }
+
+  public function album_rename_wont_accept_backslash_test() {
+    $item = test::random_album_unsaved();
+    $item->name = "\\no_album_backslashes\\allowed\\";
+    // Should fail on validate.
+    try {
+      $item->validate();
+      $this->assert_true(false, "Shouldn't get here");
+    } catch (ORM_Validation_Exception $e) {
+      $errors = $e->validation->errors();
+      $this->assert_same("no_backslashes", $errors["name"]);
+    }
+    // Should be corrected on save.
+    $item->save();
+    $this->assert_equal("no_album_backslashes_allowed", $item->name);
+    // Should be corrected on update.
+    $item->name = "\\no_album_backslashes\\allowed\\";
+    $item->save();
+    $this->assert_equal("no_album_backslashes_allowed", $item->name);
+  }
+
+  public function album_rename_wont_accept_trailing_period_test() {
+    $item = test::random_album_unsaved();
+    $item->name = ".no_trailing_period.allowed.";
+    // Should fail on validate.
+    try {
+      $item->validate();
+      $this->assert_true(false, "Shouldn't get here");
+    } catch (ORM_Validation_Exception $e) {
+      $errors = $e->validation->errors();
+      $this->assert_same("no_trailing_period", $errors["name"]);
+    }
+    // Should be corrected on save.
+    $item->save();
+    $this->assert_equal(".no_trailing_period.allowed", $item->name);
+    // Should be corrected on update.
+    $item->name = ".no_trailing_period.allowed.";
+    $item->save();
+    $this->assert_equal(".no_trailing_period.allowed", $item->name);
   }
 
   public function move_album_test() {
