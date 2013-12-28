@@ -398,42 +398,62 @@ class gallery_task_Core {
       switch ($state) {
       case self::FIX_STATE_START_MPTT:
         $task->set("ptr", $ptr = 1);
-        $task->set("stack", item::root()->id . ":L");
+        $task->set("stack", item::root()->id . "L1");
         $state = self::FIX_STATE_RUN_MPTT;
         break;
 
       case self::FIX_STATE_RUN_MPTT:
         $ptr = $task->get("ptr");
         $stack = explode(" ", $task->get("stack"));
-        list ($id, $ptr_mode) = explode(":", array_pop($stack));
-        if ($ptr_mode == "L") {
-          $stack[] = "$id:R";
+        preg_match("/([0-9]+)([A-Z])([0-9]+)/", array_pop($stack), $matches);  // e.g. "12345L10"
+        list ( , $id, $ptr_mode, $level) = $matches;  // Skip the 0th entry of matches.
+        switch ($ptr_mode) {
+        case "L":
+          // Albums could be parent nodes.
+          $stack[] = "{$id}R{$level}";
           db::build()
             ->update("items")
             ->set("left_ptr", $ptr++)
             ->where("id", "=", $id)
             ->execute();
 
+          $level++;
           foreach (db::build()
-                   ->select(array("id"))
+                   ->select(array("id", "type"))
                    ->from("items")
                    ->where("parent_id", "=", $id)
-                   ->order_by("left_ptr", "ASC")
+                   ->order_by("left_ptr", "DESC") // DESC since array_pop effectively reverses them
                    ->execute() as $child) {
-            array_push($stack, "{$child->id}:L");
+            $stack[] = ($child->type == "album") ? "{$child->id}L{$level}" : "{$child->id}B{$level}";
           }
-        } else if ($ptr_mode == "R") {
+          $completed++;
+          break;
+        case "B":
+          // Non-albums must be leaf nodes.
           db::build()
             ->update("items")
+            ->set("left_ptr", $ptr++)
             ->set("right_ptr", $ptr++)
+            ->set("level", $level)
             ->set("relative_path_cache", null)
             ->set("relative_url_cache", null)
             ->where("id", "=", $id)
             ->execute();
+          $completed += 2;  // we updated two pointers
+          break;
+        case "R":
+          db::build()
+            ->update("items")
+            ->set("right_ptr", $ptr++)
+            ->set("level", $level)
+            ->set("relative_path_cache", null)
+            ->set("relative_url_cache", null)
+            ->where("id", "=", $id)
+            ->execute();
+          $completed++;
         }
         $task->set("ptr", $ptr);
         $task->set("stack", implode(" ", $stack));
-        $completed++;
 
         if (empty($stack)) {
           $state = self::FIX_STATE_START_DUPE_SLUGS;
