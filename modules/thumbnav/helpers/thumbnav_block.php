@@ -24,7 +24,7 @@ class ThumbNav_block_Core {
 		//$siblings = $theme->siblings($offset, $thumb_count); 
 		$left_count = ceil($thumb_count / 2) * 5;
 		$offset = $theme->position > $left_count ? $theme->position - $left_count : 0;
-		$siblings = $theme->siblings($offset, $thumb_count * 5); 
+		$siblings = $theme->siblings($thumb_count * 5, $offset); 
 		if (count($siblings) > 1000) {
 			$siblings = $item->parent()->children();
 		}
